@@ -1,0 +1,27 @@
+# Dependencias para Lector de PDF con Voz
+# Todas las librerías son gratuitas y de código abierto.
+# Instalar con:  pip install -r requirements.txt
+
+# --- Interfaz de usuario ---
+streamlit>=1.30.0            # Framework principal para la UI web local
+
+# --- Procesamiento de PDF ---
+pypdf>=4.0.0                 # Extracción de texto de PDFs digitales (gratis, MIT)
+
+# --- Motor de texto a voz (Edge-TTS - PREFERIDO, máxima calidad) ---
+edge-tts>=6.1.0              # Voces neurales Microsoft Edge Read Aloud (español)
+#                            # Requiere internet. Salida MP3.
+
+# --- Motor de texto a voz (Piper TTS - offline, calidad media) ---
+piper-tts>=1.2.0             # Voces neuronales locales en español
+onnxruntime>=1.16.0          # Backend de inferencia para modelos Piper
+
+# --- Procesamiento de audio ---
+soundfile>=0.12.0            # Lectura/escritura de archivos WAV
+numpy>=1.24.0                # Manipulación de arrays de audio
+
+# --- Motor de respaldo (Windows SAPI5) ---
+pyttsx3>=2.90                # Fallback usando voces nativas de Windows
+
+# --- Utilidades ---
+requests>=2.31.0             # Descarga de voces Piper desde HuggingFace

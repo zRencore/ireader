@@ -1,0 +1,15 @@
+[server]
+# Forzar escucha solo en localhost para evitar bloqueos de firewall en Windows
+address = "127.0.0.1"
+port = 8501
+headless = true
+
+[browser]
+# Abrir el navegador automaticamente
+gatherUsageStats = false
+serverAddress = "localhost"
+serverPort = 8501
+
+[ui]
+# Ocultar el prompt de email del primer arranque
+hideTopBar = false

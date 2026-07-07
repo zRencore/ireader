@@ -1,23 +1,25 @@
 # 📚 Lector de PDF con Voz
 
-Una aplicación web moderna para leer documentos PDF en voz usando síntesis de voz neural de alta calidad. Construida con Streamlit y Edge-TTS.
+Una aplicación web para leer PDFs y texto escrito en voz alta usando síntesis neural de alta calidad. Construida con Streamlit y con soporte para Edge-TTS, Piper TTS y pyttsx3.
 
 ## ✨ Características
 
-- **Lectura de PDF**: Extrae y procesa texto de archivos PDF digitales
-- **Síntesis de voz neural**: Múltiples backends de TTS con diferentes calidades y configuraciones
-- **Interfaz minimalista**: Diseño inspirado en Notion, limpio y fácil de usar
-- **Múltiples voces**: +20 voces en español (España y Latinoamérica)
+- **Dos modos de uso**: leer desde PDF o escribir texto directamente para sintetizarlo
+- **Extracción de texto por páginas**: permite seleccionar rangos, revisar el contenido y editarlo antes de generar audio
+- **Estadísticas del documento**: muestra páginas totales, páginas con texto, caracteres, palabras y una estimación de tiempo de lectura
+- **Controles de voz**: velocidad, tono, volumen y selección de voz según el backend
+- **Audio reproducible y descargable**: genera salida en MP3 o WAV y permite descargarla desde la interfaz
 - **Tres backends de TTS**:
-  - 🌐 **Edge-TTS** (Recomendado): Voces neuronales de Microsoft, máxima calidad, requiere internet
-  - 🖥️ **Piper TTS**: Alternativa offline con buena calidad, 100% local
-  - 🔊 **pyttsx3**: Voces SAPI5 del sistema, solo como emergencia
+   - 🌐 **Edge-TTS** (recomendado): voces neuronales de Microsoft, máxima calidad, requiere internet
+   - 🖥️ **Piper TTS**: alternativa offline con buena calidad, 100% local una vez descargada la voz
+   - 🔊 **pyttsx3**: voces del sistema, útil como respaldo
+- **Interfaz moderna**: diseño responsive con pestañas, barra lateral compacta y tema adaptativo claro/oscuro
 
 ## 📋 Requisitos
 
 - Python 3.8+
 - Windows (o Linux/Mac con ajustes menores)
-- Conexión a internet (para Edge-TTS)
+- Conexión a internet para usar Edge-TTS y descargar voces de Piper
 
 ## 🚀 Instalación
 
@@ -38,6 +40,8 @@ Una aplicación web moderna para leer documentos PDF en voz usando síntesis de 
    pip install -r requirements.txt
    ```
 
+Si solo vas a usar Edge-TTS, no necesitas instalar nada adicional. Piper TTS y sus modelos se usan solo si eliges ese backend.
+
 ## 💻 Uso
 
 ### Opción 1: Usar el script de inicio (Windows)
@@ -54,9 +58,11 @@ La aplicación se abrirá en tu navegador en `http://localhost:8501`
 
 ## 📖 Cómo usar
 
-1. **Cargar un PDF**: Arrastra o selecciona un archivo PDF desde la interfaz
-2. **Configurar lectura**: Elige las páginas, velocidad de voz y backend de TTS
-3. **Reproducir**: Haz clic en "Leer en voz alta" para escuchar el contenido
+1. **Elegir el modo**: usa la pestaña de PDF para cargar y procesar un documento, o la pestaña de texto para escribir directamente
+2. **Configurar la voz**: selecciona el backend, la voz y los ajustes disponibles desde la barra lateral
+3. **Preparar el contenido**: en PDF, selecciona el rango de páginas y edita el texto extraído si lo necesitas
+4. **Generar audio**: pulsa el botón de síntesis para escuchar el resultado en el reproductor integrado
+5. **Descargar el audio**: usa el botón de descarga si quieres guardar el archivo generado
 
 ## ⚙️ Configuración
 
@@ -97,9 +103,10 @@ Lector_EdgeTTS/
 ### `app.py`
 Aplicación principal con interfaz Streamlit. Maneja:
 - Carga de archivos PDF
-- Configuración de voz y velocidad
-- Control de reproducción
-- Visualización de estadísticas
+- Escritura de texto directo
+- Configuración de voz, velocidad, tono y volumen
+- Control de reproducción y descarga de audio
+- Visualización de estadísticas del documento
 
 ### `pdf_processor.py`
 Módulo de procesamiento de PDFs con funciones para:
@@ -111,7 +118,7 @@ Módulo de procesamiento de PDFs con funciones para:
 Motor de síntesis de voz que gestiona:
 - Detección automática de backends disponibles
 - Cambio entre diferentes motores TTS
-- Generación de audio en MP3
+- Generación de audio en MP3 y WAV
 
 ## 🌐 Backends de TTS
 
@@ -134,7 +141,8 @@ Motor de síntesis de voz que gestiona:
 - La aplicación solo soporta PDFs con **texto nativo** (seleccionable)
 - Los PDFs escaneados requieren OCR (no incluido en este proyecto)
 - Edge-TTS requiere conexión a internet para funcionar
-- Los archivos de audio se generan en formato MP3
+- Piper TTS necesita descargar una voz la primera vez que se usa
+- La salida final puede ser MP3 o WAV según el backend
 
 ## 🤝 Contribuciones
 
@@ -150,6 +158,10 @@ Este proyecto utiliza librerías de código abierto bajo licencias MIT y compati
 - Verifica que sea un PDF con texto nativo (no escaneado)
 - Intenta con otro PDF para descartar problemas del archivo
 
+**No aparece texto en una página:**
+- Puede tratarse de una página solo con imágenes, diagramas o texto no extraíble
+- Prueba con otro rango de páginas o con otro documento
+
 **No hay sonido:**
 - Verifica tu conexión a internet (para Edge-TTS)
 - Comprueba que el volumen del navegador esté activo
@@ -162,4 +174,4 @@ Este proyecto utiliza librerías de código abierto bajo licencias MIT y compati
 
 ---
 
-**Última actualización**: 2026-06-29
+**Última actualización**: 2026-07-07

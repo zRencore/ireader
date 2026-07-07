@@ -33,7 +33,6 @@ from __future__ import annotations
 import asyncio
 import io
 import os
-import shutil
 import tempfile
 import urllib.request
 from pathlib import Path
@@ -173,6 +172,7 @@ def synthesize_with_edge(
     rate_percent: int = 0,
     pitch_hz: int = 0,
     volume_percent: int = 0,
+    timeout_seconds: int = 30,
 ) -> bytes:
     """
     Sintetiza texto a voz usando Edge-TTS.
@@ -180,7 +180,8 @@ def synthesize_with_edge(
     Parameters
     ----------
     text : str
-        Texto a sintetizar.
+        Texto a sintetizar. Si está vacío o solo contiene espacios,
+        devuelve bytes vacíos sin llamar a la API.
     voice_id : str
         ID de la voz Edge (ej: "es-ES-ElviraNeural").
     rate_percent : int
@@ -189,36 +190,48 @@ def synthesize_with_edge(
         Ajuste de tono en Hz. -20 = más grave, +20 = más agudo.
     volume_percent : int
         Ajuste de volumen en porcentaje. -50 = más bajo, +50 = más alto.
+    timeout_seconds : int
+        Tiempo máximo de espera por fragmento. Si se excede, se lanza TimeoutError.
 
     Returns
     -------
     bytes
-        Audio en formato MP3.
+        Audio en formato MP3. Bytes vacíos si el texto está vacío.
     """
+    # Validación de entrada: texto vacío no se sintetiza
+    if not text or not text.strip():
+        return b""
+
+    # Validar que la voz existe en nuestro catálogo (defensivo)
+    valid_voice_ids = {v["voice_id"] for v in EDGE_VOICES.values()}
+    if voice_id not in valid_voice_ids:
+        # Permitir IDs fuera del catálogo (puede que el usuario quiera una voz nueva),
+        # pero registrar warning.
+        import warnings
+        warnings.warn(
+            f"Voice ID '{voice_id}' no está en el catálogo EDGE_VOICES. "
+            "Puede no funcionar."
+        )
+
     rate = f"{'+' if rate_percent >= 0 else ''}{int(rate_percent)}%"
     pitch = f"{'+' if pitch_hz >= 0 else ''}{int(pitch_hz)}Hz"
     volume = f"{'+' if volume_percent >= 0 else ''}{int(volume_percent)}%"
 
-    # Manejar el caso de estar dentro de un loop ya existente (Streamlit)
+    # Ejecutar la corrutina asíncrona de forma robusta.
+    # asyncio.run() crea un loop nuevo y lo cierra limpiamente.
+    # Streamlit NO tiene un event loop activo en el hilo principal,
+    # por lo que asyncio.run() es la solución correcta y más simple.
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # Streamlit no tiene un loop activo normalmente, pero por seguridad
-            # creamos uno nuevo en un hilo separado.
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                audio_bytes = pool.submit(
-                    asyncio.run,
-                    _edge_synthesize_async(text, voice_id, rate, pitch, volume),
-                ).result()
-        else:
-            audio_bytes = loop.run_until_complete(
-                _edge_synthesize_async(text, voice_id, rate, pitch, volume)
-            )
-    except RuntimeError:
-        # No hay event loop - crear uno nuevo
         audio_bytes = asyncio.run(
-            _edge_synthesize_async(text, voice_id, rate, pitch, volume)
+            asyncio.wait_for(
+                _edge_synthesize_async(text, voice_id, rate, pitch, volume),
+                timeout=timeout_seconds,
+            )
+        )
+    except asyncio.TimeoutError:
+        raise TimeoutError(
+            f"Edge-TTS superó el timeout de {timeout_seconds}s. "
+            "Verifica tu conexión a internet."
         )
 
     return audio_bytes
@@ -342,6 +355,39 @@ def download_piper_voice(
 # ===========================================================================
 # Funciones de síntesis - Piper y pyttsx3
 # ===========================================================================
+# Cache del modelo Piper cargado para evitar recargar el .onnx en cada chunk.
+# PiperVoice.load() carga un modelo de 60MB en memoria; llamarlo por cada
+# fragmento de texto era un cuello de botella enorme (10x+ más lento).
+_PIPER_VOICE_CACHE: Dict[str, object] = {}
+
+
+def _get_piper_voice(voice_name: str):
+    """Carga y cachea el modelo PiperVoice para una voz dada."""
+    import wave  # noqa: F401
+
+    from piper import PiperVoice
+
+    if voice_name not in PIPER_VOICES:
+        raise ValueError(f"Voz Piper desconocida: {voice_name}")
+
+    if voice_name in _PIPER_VOICE_CACHE:
+        return _PIPER_VOICE_CACHE[voice_name]
+
+    voice_info = PIPER_VOICES[voice_name]
+    model_path = get_voices_dir() / voice_info["model_file"]
+    config_path = get_voices_dir() / voice_info["config_file"]
+
+    if not model_path.exists() or not config_path.exists():
+        raise FileNotFoundError(
+            f"El modelo Piper no está descargado: {model_path.name}. "
+            "Descárgalo desde la interfaz."
+        )
+
+    voice = PiperVoice.load(str(model_path), config_path=str(config_path))
+    _PIPER_VOICE_CACHE[voice_name] = voice
+    return voice
+
+
 def synthesize_with_piper(
     text: str,
     voice_name: str,
@@ -350,20 +396,37 @@ def synthesize_with_piper(
     noise_w: float = 0.333,
     pitch_shift: float = 0.0,
 ) -> Tuple[int, np.ndarray]:
-    """Sintetiza texto a voz usando Piper TTS. Devuelve (sample_rate, array)."""
+    """
+    Sintetiza texto a voz usando Piper TTS. Devuelve (sample_rate, array).
+
+    El modelo PiperVoice se carga una sola vez y se cachea en memoria
+    para llamadas subsiguientes con la misma voz.
+
+    Los parámetros length_scale, noise_scale y noise_w se pasan al modelo
+    vía SynthesisConfig para que tengan efecto real sobre la síntesis.
+    """
     import wave
 
-    from piper import PiperVoice
+    from piper.config import SynthesisConfig
 
-    voice_info = PIPER_VOICES[voice_name]
-    model_path = get_voices_dir() / voice_info["model_file"]
-    config_path = get_voices_dir() / voice_info["config_file"]
+    if not text or not text.strip():
+        return 22050, np.zeros(0, dtype="float32")
 
-    voice = PiperVoice.load(str(model_path), config_path=str(config_path))
+    voice = _get_piper_voice(voice_name)
+
+    # Construir SynthesisConfig con los parámetros de ajuste.
+    # length_scale: < 1 más rápido, > 1 más lento
+    # noise_scale: variabilidad de entonación
+    # noise_w_scale: variabilidad de duración fonética
+    syn_config = SynthesisConfig(
+        length_scale=length_scale if length_scale > 0 else 1.0,
+        noise_scale=noise_scale,
+        noise_w_scale=noise_w,
+    )
 
     buffer = io.BytesIO()
     with wave.open(buffer, "wb") as wav_file:
-        voice.synthesize_wav(text, wav_file)
+        voice.synthesize_wav(text, wav_file, syn_config=syn_config)
 
     buffer.seek(0)
     audio, sample_rate = sf.read(buffer, dtype="float32")
@@ -380,8 +443,16 @@ def synthesize_with_pyttsx3(
     rate: int = 0,
     volume: float = 1.0,
 ) -> Tuple[int, np.ndarray]:
-    """Sintetiza texto a voz usando pyttsx3 (Windows SAPI5)."""
+    """
+    Sintetiza texto a voz usando pyttsx3 (Windows SAPI5).
+
+    Usa un archivo temporal con nombre único por llamada para evitar
+    colisiones si se procesan múltiples chunks en secuencia rápida.
+    """
     import pyttsx3
+
+    if not text or not text.strip():
+        return 22050, np.zeros(0, dtype="float32")
 
     engine = pyttsx3.init()
 
@@ -400,16 +471,20 @@ def synthesize_with_pyttsx3(
     engine.setProperty("rate", 200 + rate)
     engine.setProperty("volume", max(0.0, min(1.0, volume)))
 
-    tmp_path = Path(tempfile.gettempdir()) / "pyttsx3_output.wav"
-    engine.save_to_file(text, str(tmp_path))
-    engine.runAndWait()
-    engine.stop()
+    # Nombre único para evitar colisiones entre chunks
+    tmp_path = Path(tempfile.gettempdir()) / f"pyttsx3_{os.getpid()}_{id(text)}.wav"
+    try:
+        engine.save_to_file(text, str(tmp_path))
+        engine.runAndWait()
+        engine.stop()
 
-    if not tmp_path.exists():
-        return 22050, np.zeros(0, dtype="float32")
+        if not tmp_path.exists() or tmp_path.stat().st_size == 0:
+            return 22050, np.zeros(0, dtype="float32")
 
-    audio, sample_rate = sf.read(str(tmp_path), dtype="float32")
-    tmp_path.unlink(missing_ok=True)
+        audio, sample_rate = sf.read(str(tmp_path), dtype="float32")
+    finally:
+        # Limpieza garantizada incluso si hay error
+        tmp_path.unlink(missing_ok=True)
 
     return sample_rate, audio
 

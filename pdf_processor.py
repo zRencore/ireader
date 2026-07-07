@@ -12,9 +12,11 @@ se limita a PDFs con texto nativo.
 from __future__ import annotations
 
 import io
+import re
 from typing import List, Dict
 
 from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 
 
 def extract_pages_from_pdf(pdf_file_bytes: bytes) -> List[Dict[str, object]]:
@@ -32,8 +34,29 @@ def extract_pages_from_pdf(pdf_file_bytes: bytes) -> List[Dict[str, object]]:
         Lista de diccionarios con la forma:
         [{"page_number": 1, "text": "...", "char_count": 123}, ...]
         Las páginas sin texto extraíble devuelven text="".
+
+    Raises
+    ------
+    PdfReadError
+        Si el PDF está corrupto o protegido con contraseña.
     """
-    reader = PdfReader(io.BytesIO(pdf_file_bytes))
+    try:
+        reader = PdfReader(io.BytesIO(pdf_file_bytes))
+    except PdfReadError as exc:
+        raise PdfReadError(f"PDF corrupto o no válido: {exc}") from exc
+
+    # Detectar PDFs protegidos con contraseña
+    if reader.is_encrypted:
+        # Intentar descifrar con contraseña vacía (algunos PDFs solo tienen
+        # restricciones de permisos pero no contraseña de apertura)
+        try:
+            reader.decrypt("")
+        except Exception as exc:
+            raise PdfReadError(
+                "El PDF está protegido con contraseña. "
+                "Elimina la protección antes de subirlo."
+            ) from exc
+
     pages: List[Dict[str, object]] = []
 
     for index, page in enumerate(reader.pages, start=1):
@@ -72,20 +95,35 @@ def get_document_stats(pages: List[Dict[str, object]]) -> Dict[str, int]:
     total_words = sum(len(str(page["text"]).split()) for page in pages)
     non_empty_pages = sum(1 for page in pages if page["text"])
 
+    # Estimación: ~150 palabras por minuto en español hablado.
+    # Mínimo 1 minuto si hay cualquier texto, 0 si no hay nada.
+    if total_words == 0:
+        estimated_minutes = 0
+    else:
+        estimated_minutes = max(1, total_words // 150)
+
     return {
         "total_pages": len(pages),
         "pages_with_text": non_empty_pages,
         "total_chars": total_chars,
         "total_words": total_words,
-        "estimated_minutes": max(1, total_words // 150),  # ~150 ppm en español
+        "estimated_minutes": estimated_minutes,
     }
+
+
+# Regex para dividir por oraciones respetando abreviaturas comunes.
+# Patrón: dividir en punto/signo seguido de espacio, PERO no dentro de
+# abreviaturas como "S.A.", "Dr.", "Sra.", "EE.UU.", números decimales, etc.
+_SENTENCE_END_RE = re.compile(
+    r"(?<=[.!?])\s+"          # Punto/exclamación/interrogación seguido de espacio
+)
 
 
 def split_text_into_chunks(text: str, max_chars: int = 500) -> List[str]:
     """
     Divide un texto largo en fragmentos más pequeños respetando los límites
-    de oración. Piper TTS tiene un límite práctico de longitud por síntesis,
-    por lo que conviene procesar en fragmentos de ~500 caracteres.
+    de oración. Piper TTS y Edge-TTS tienen límites prácticos de longitud
+    por síntesis, por lo que conviene procesar en fragmentos de ~500 caracteres.
 
     Parameters
     ----------
@@ -94,13 +132,10 @@ def split_text_into_chunks(text: str, max_chars: int = 500) -> List[str]:
     max_chars : int
         Tamaño máximo aproximado de cada fragmento.
     """
-    if not text.strip():
+    if not text or not text.strip():
         return []
 
-    # Dividir primero por puntos, signos de exclamación y de interrogación.
-    import re
-
-    sentences = re.split(r"(?<=[.!?])\s+", text)
+    sentences = _SENTENCE_END_RE.split(text)
     chunks: List[str] = []
     current_chunk = ""
 

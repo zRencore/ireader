@@ -255,7 +255,7 @@ iframe[title="app_hero_injector"] {
     filter: none;
 }
 
-/* === Barra lateral: encaja exactamente en la altura de la pantalla === */
+/* === Barra lateral: compacta para que todo el contenido entre sin scroll === */
 section[data-testid="stSidebar"] {
     background-color: var(--bg-sidebar);
     border-right: 1px solid var(--border-color);
@@ -264,83 +264,49 @@ section[data-testid="stSidebar"] {
 }
 section[data-testid="stSidebar"] > div {
     height: 100vh !important;
-}
-/* Contenedor scrolleable interno de Streamlit: lo convertimos en columna flex
-   para que su contenido se reparta en TODA la altura disponible */
-section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
-    height: 100vh !important;
-    display: flex !important;
-    flex-direction: column !important;
     overflow: hidden !important;
 }
 section[data-testid="stSidebar"] .block-container {
-    flex: 1 1 auto !important;
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100% !important;
-    padding-top: 1rem !important;
-    padding-bottom: 1rem !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.3rem !important;
+    padding-left: 0.9rem !important;
+    padding-right: 0.9rem !important;
     max-width: 100% !important;
     overflow: hidden !important;
 }
-section[data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {
-    flex: 1 1 auto !important;
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100% !important;
-}
-/* La columna de widgets ocupa el 100% de la altura; el espacio libre se
-   reparte automáticamente entre los separadores (ver regla ":has(hr)" abajo) */
 section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-    flex: 1 1 auto !important;
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100% !important;
-    gap: 0.4rem !important;
+    gap: 0.12rem !important;
 }
 section[data-testid="stSidebar"] .element-container {
-    flex: 0 0 auto !important;
     margin-bottom: 0 !important;
-}
-/* Cada separador "---" actúa como espaciador flexible: absorbe todo el
-   espacio sobrante para que el contenido llene exactamente el alto de
-   pantalla, sin huecos arriba ni abajo */
-section[data-testid="stSidebar"] .element-container:has(hr) {
-    flex: 1 1 auto !important;
-    display: flex !important;
-    align-items: center !important;
-    min-height: 0.6rem;
 }
 section[data-testid="stSidebar"] h2 {
     margin-top: 0 !important;
-    margin-bottom: 0.4rem !important;
-    font-size: 1rem !important;
+    margin-bottom: 0.25rem !important;
+    font-size: 0.95rem !important;
     font-weight: 700 !important;
-    padding-bottom: 0.35rem;
+    padding-bottom: 0.2rem;
     border-bottom: 1px solid var(--border-soft);
 }
 section[data-testid="stSidebar"] h3 {
-    margin-top: 0 !important;
-    margin-bottom: 0.15rem !important;
-    font-size: 0.78rem !important;
+    margin-top: 0.1rem !important;
+    margin-bottom: 0.05rem !important;
+    font-size: 0.74rem !important;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--accent) !important;
     opacity: 0.95;
 }
 section[data-testid="stSidebar"] hr {
-    margin: 0 !important;
+    margin: 0.15rem 0 !important;
     border-color: var(--border-soft) !important;
-    width: 100%;
 }
 section[data-testid="stSidebar"] .stCaption,
 section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
-    margin-top: 0.05rem !important;
+    margin-top: 0 !important;
     margin-bottom: 0 !important;
-    line-height: 1.3 !important;
-    font-size: 0.76rem !important;
+    line-height: 1.2 !important;
+    font-size: 0.7rem !important;
 }
 section[data-testid="stSidebar"] .stSlider {
     padding-top: 0 !important;
@@ -352,7 +318,7 @@ section[data-testid="stSidebar"] .stSlider > div {
     padding-bottom: 0 !important;
 }
 section[data-testid="stSidebar"] .stSlider [data-baseweb="slider"] {
-    height: 20px !important;
+    height: 14px !important;
 }
 section[data-testid="stSidebar"] .stSlider [data-baseweb="slider"] > div:nth-child(2) {
     margin-bottom: 0 !important;
@@ -364,7 +330,9 @@ section[data-testid="stSidebar"] .stSlider [data-baseweb="slider"] > div:nth-chi
 }
 section[data-testid="stSidebar"] .param-label {
     margin-top: 0 !important;
-    font-size: 0.8rem !important;
+    margin-bottom: 0 !important;
+    font-size: 0.76rem !important;
+    line-height: 1.1 !important;
 }
 section[data-testid="stSidebar"] .stSelectbox {
     margin-bottom: 0 !important;
@@ -373,12 +341,13 @@ section[data-testid="stSidebar"] .stSelectbox > div > div {
     border-radius: var(--radius-sm) !important;
     border-color: var(--border-color) !important;
     background-color: var(--bg-input) !important;
-    min-height: 34px !important;
+    min-height: 28px !important;
 }
 section[data-testid="stSidebar"] .stSelectbox label {
-    margin-bottom: 0.05rem !important;
-    font-size: 0.8rem !important;
+    margin-bottom: 0 !important;
+    font-size: 0.76rem !important;
     font-weight: 500;
+    line-height: 1.1 !important;
 }
 section[data-testid="stSidebar"] input,
 section[data-testid="stSidebar"] textarea {
@@ -390,7 +359,12 @@ section[data-testid="stSidebar"] textarea {
 /* Compactar badges y textos pequeños de la sidebar (país/voz activa, etc.) */
 section[data-testid="stSidebar"] .stMarkdown p {
     margin-bottom: 0 !important;
-    font-size: 0.8rem !important;
+    font-size: 0.76rem !important;
+    line-height: 1.2 !important;
+}
+/* El ícono de ayuda (?) junto a cada label, un poco más pequeño y alineado */
+section[data-testid="stSidebar"] [data-testid="stTooltipIcon"] {
+    margin-top: 0 !important;
 }
 
 /* === Métricas (cards modernos) === */
@@ -1231,6 +1205,124 @@ with st.sidebar:
     st.markdown("---")
     st.caption(
         "🔒 Edge-TTS envía texto a Microsoft. Piper/pyttsx3 funcionan offline."
+    )
+
+    # -----------------------------------------------------------------
+    # Forzar (vía JS/DOM, sin depender de nombres internos de Streamlit)
+    # que todo el contenido de la barra lateral llene EXACTAMENTE el
+    # alto de la pantalla, sin scroll y sin espacio vacío sobrante.
+    # El espacio libre se reparte de forma PAREJA entre todos los
+    # elementos (no solo en los separadores).
+    # -----------------------------------------------------------------
+    components.html(
+        """
+        <script>
+        (function() {
+            const doc = window.parent.document;
+            const sidebar = doc.querySelector('section[data-testid="stSidebar"]');
+            if (!sidebar) { return; }
+
+            const vBlock = sidebar.querySelector('[data-testid="stVerticalBlock"]');
+            if (!vBlock) { return; }
+
+            sidebar.style.height = '100vh';
+            sidebar.style.overflow = 'hidden';
+
+            // Encadenar flex+altura 100% desde la sidebar hasta el bloque de
+            // widgets, sin importar cuántos contenedores intermedios haya
+            // ni cómo se llamen.
+            let el = vBlock;
+            while (el && el !== sidebar) {
+                el.style.height = '100%';
+                el.style.display = 'flex';
+                el.style.flexDirection = 'column';
+                el.style.minHeight = '0px';
+                el.style.overflow = 'hidden';
+                el = el.parentElement;
+            }
+            vBlock.style.flex = '1 1 auto';
+            vBlock.style.overflow = 'hidden';
+
+            // Reparto uniforme: el espacio libre se distribuye EN PARTES
+            // IGUALES entre todos los elementos (no solo en los separadores),
+            // dejando el primero pegado arriba y el último pegado abajo.
+            vBlock.style.gap = '0px';
+            vBlock.style.justifyContent = 'space-between';
+
+            // Los separadores "---" no necesitan crecer individualmente;
+            // solo se les quita el margen propio para no duplicar espacio.
+            const hrs = vBlock.querySelectorAll('hr');
+            hrs.forEach(function(hr) {
+                hr.style.margin = '0';
+            });
+
+            // Separar 2px el numerito de valor de cada slider respecto a la
+            // barra. Es posible que ese numerito NO esté dentro del árbol
+            // del slider en el DOM (React suele renderizar tooltips como
+            // "portal" directamente al final de <body>, para que no se
+            // recorten por otros contenedores). Por eso buscamos en TODA
+            // la página, filtrando solo por posición horizontal (que esté
+            // sobre la barra lateral) para no tocar números de otras
+            // partes de la app.
+            function fixSliderValueNode(node) {
+                if (node.dataset && node.dataset.spacingFixed === '1') { return; }
+                const cs = window.parent.getComputedStyle(node);
+                if (cs.position === 'absolute' || cs.position === 'fixed' || cs.position === 'relative') {
+                    const currentTop = parseFloat(cs.top) || 0;
+                    node.style.setProperty('top', (currentTop - 2) + 'px', 'important');
+                } else {
+                    const currentMarginTop = parseFloat(cs.marginTop) || 0;
+                    node.style.setProperty(
+                        'margin-top', (currentMarginTop - 2) + 'px', 'important'
+                    );
+                }
+                if (node.dataset) { node.dataset.spacingFixed = '1'; }
+            }
+
+            function scanForSliderValues() {
+                const sidebarRect = sidebar.getBoundingClientRect();
+                const allNodes = doc.body.querySelectorAll('*');
+                allNodes.forEach(function(node) {
+                    if (node.children.length > 0) { return; }
+                    if (node.closest('[data-testid="stTickBarMin"]')) { return; }
+                    if (node.closest('[data-testid="stTickBarMax"]')) { return; }
+                    const txt = (node.textContent || '').trim();
+                    if (!/^-?[0-9]+([.][0-9]+)?$/.test(txt)) { return; }
+
+                    const rect = node.getBoundingClientRect();
+                    if (rect.width === 0 && rect.height === 0) { return; }
+                    // Debe estar horizontalmente sobre la barra lateral
+                    // (con un margen de tolerancia de 6px).
+                    if (rect.left < sidebarRect.left - 6 || rect.left > sidebarRect.right + 6) {
+                        return;
+                    }
+                    fixSliderValueNode(node);
+                });
+            }
+
+            // Revisión inicial (por si el numerito ya estuviera visible en
+            // el momento del rerun) y luego observamos TODO el documento,
+            // ya que el tooltip puede insertarse en cualquier punto del
+            // árbol al aparecer.
+            scanForSliderValues();
+            let scheduled = false;
+            const observer = new MutationObserver(function() {
+                if (scheduled) { return; }
+                scheduled = true;
+                window.parent.requestAnimationFrame(function() {
+                    scheduled = false;
+                    scanForSliderValues();
+                });
+            });
+            observer.observe(doc.body, {
+                childList: true,
+                subtree: true,
+                characterData: true,
+            });
+        })();
+        </script>
+        """,
+        height=0,
     )
 
 

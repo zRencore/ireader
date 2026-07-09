@@ -165,13 +165,13 @@ header[data-testid="stHeader"] > div {
 }
 #injected-app-hero {
     position: absolute;
-    left: 50%;
+    /* "left" y "max-width" se fijan dinámicamente por JS, para quedar
+       siempre alineado con el borde izquierdo del contenido del cuerpo */
     top: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    max-width: 58%;
     pointer-events: none;
 }
 #injected-app-hero .app-hero-icon {
@@ -1331,6 +1331,10 @@ with st.sidebar:
 # ===========================================================================
 # El icono + nombre + descripción se inyectan directamente dentro del header
 # nativo de Streamlit (donde vive el botón "Deploy"), NO en el área de contenido.
+# Su alineación izquierda se sincroniza en vivo con el borde izquierdo real
+# del contenido del cuerpo (no un valor fijo), para que ambos queden
+# siempre alineados sin importar el tamaño de pantalla o si se
+# arrastra/redimensiona la barra lateral.
 components.html(
     """
     <script>
@@ -1348,12 +1352,45 @@ components.html(
             <div class="app-hero-icon">📚</div>
             <div class="app-hero-text">
                 <h1>Lector de PDF con Voz</h1>
-                <p>Lee PDFs digitales en español o ingresa texto directamente para
-                sintetizar a voz, con Edge-TTS, Piper o pyttsx3.</p>
+                <p>Lee PDFs y texto en español</p>
             </div>
         `;
-        header.style.position = header.style.position || 'fixed';
         header.appendChild(hero);
+
+        // Sincroniza continuamente el borde izquierdo del hero con el
+        // borde izquierdo real del contenido del cuerpo (el mismo donde
+        // arrancan las pestañas, botones, textareas, etc.), excluyendo el
+        // contenedor de la barra lateral.
+        function getBodyContent() {
+            const containers = Array.from(doc.querySelectorAll('.block-container'));
+            return containers.find(function(el) {
+                return !el.closest('section[data-testid="stSidebar"]');
+            });
+        }
+
+        let lastLeft = null;
+        function syncHeroAlignment() {
+            const bodyContent = getBodyContent();
+            if (bodyContent && hero.isConnected) {
+                const contentRect = bodyContent.getBoundingClientRect();
+                const headerRect = header.getBoundingClientRect();
+                // El contenido real (pestañas, botones, texto) no arranca en
+                // el borde exterior de .block-container, sino más adentro,
+                // después de su propio padding-left. Hay que sumarlo.
+                const contentStyle = window.parent.getComputedStyle(bodyContent);
+                const innerPaddingLeft = parseFloat(contentStyle.paddingLeft) || 0;
+                const contentLeftEdge = contentRect.left + innerPaddingLeft;
+                const leftPx = Math.round(contentLeftEdge - headerRect.left);
+                if (leftPx !== lastLeft) {
+                    hero.style.left = leftPx + 'px';
+                    const availableWidth = window.parent.innerWidth - contentLeftEdge - 170;
+                    hero.style.maxWidth = Math.max(availableWidth, 120) + 'px';
+                    lastLeft = leftPx;
+                }
+            }
+            window.parent.requestAnimationFrame(syncHeroAlignment);
+        }
+        syncHeroAlignment();
     })();
     </script>
     """,
